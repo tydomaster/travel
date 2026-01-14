@@ -28,14 +28,18 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
     try {
       setLoading(true)
       const [placesData, daysData] = await Promise.all([
-        getPlaces(tripId),
+        getPlaces(tripId).catch((err) => {
+          console.error('Error loading places:', err)
+          return [] // Возвращаем пустой массив вместо ошибки
+        }),
         getDays(tripId),
       ])
       setPlaces(placesData)
       setDays(daysData)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки мест')
+      console.error('Error loading data:', err)
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных')
     } finally {
       setLoading(false)
     }
@@ -180,8 +184,14 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
               Нет мест в маршруте
             </p>
             <p className="mt-2 text-sm" style={{ color: 'var(--tg-theme-hint-color, #999999)' }}>
-              Добавьте места в дни маршрута, чтобы они отображались здесь
+              Чтобы увидеть места на карте:
             </p>
+            <ol className="mt-4 list-decimal list-inside text-left space-y-2 text-sm" style={{ color: 'var(--tg-theme-hint-color, #999999)' }}>
+              <li>Перейдите в раздел "Маршрут"</li>
+              <li>Откройте день и добавьте пункт маршрута</li>
+              <li>При создании пункта укажите координаты места (lat, lng)</li>
+              <li>Места появятся на карте автоматически</li>
+            </ol>
           </div>
         ) : (
           <div>

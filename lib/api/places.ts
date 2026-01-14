@@ -49,10 +49,17 @@ export async function getPlaces(tripId: number): Promise<Place[]> {
   })
 
   if (!response.ok) {
-    throw new Error('Failed to fetch places')
+    // Если 404 или пустой ответ, возвращаем пустой массив
+    if (response.status === 404) {
+      return []
+    }
+    const errorText = await response.text().catch(() => 'Unknown error')
+    console.error('Failed to fetch places:', response.status, errorText)
+    throw new Error(`Failed to fetch places: ${response.status}`)
   }
 
-  return response.json()
+  const data = await response.json()
+  return Array.isArray(data) ? data : []
 }
 
 export async function getPlace(tripId: number, placeId: number): Promise<Place> {
