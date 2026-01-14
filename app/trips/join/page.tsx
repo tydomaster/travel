@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import TelegramHeader from '@/components/TelegramHeader'
 import { joinTrip } from '@/lib/api/trips'
 import { useTelegram } from '@/hooks/useTelegram'
 import { getStartParam } from '@/utils/telegramLinks'
 
-export default function JoinTripPage() {
+function JoinTripContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { webApp, isReady } = useTelegram()
@@ -111,6 +111,28 @@ export default function JoinTripPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function JoinTripPage() {
+  return (
+    <Suspense fallback={
+      <div
+        className="min-h-screen"
+        style={{ backgroundColor: 'var(--tg-theme-bg-color, #ffffff)' }}
+      >
+        <TelegramHeader title="Присоединение к поездке" showBack={true} />
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <p style={{ color: 'var(--tg-theme-text-color, #000000)' }}>
+              Загрузка...
+            </p>
+          </div>
+        </main>
+      </div>
+    }>
+      <JoinTripContent />
+    </Suspense>
   )
 }
 
