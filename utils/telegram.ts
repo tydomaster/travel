@@ -36,17 +36,34 @@ export function getInitData(): string | null {
   if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
     const initData = window.Telegram.WebApp.initData
     
-    // Логируем для отладки (только в dev режиме)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('getInitData:', initData ? `Found (length: ${initData.length})` : 'Not found')
+    // Логируем для отладки
+    if (initData) {
+      try {
+        // Пытаемся извлечь user ID из initData для логирования
+        const params = new URLSearchParams(initData)
+        const userParam = params.get('user')
+        if (userParam) {
+          const user = JSON.parse(decodeURIComponent(userParam))
+          console.log('getInitData: Found initData for user:', {
+            id: user.id,
+            firstName: user.first_name,
+            username: user.username,
+            initDataLength: initData.length
+          })
+        } else {
+          console.log('getInitData: Found initData but no user data (length:', initData.length, ')')
+        }
+      } catch (e) {
+        console.log('getInitData: Found initData (length:', initData.length, ') but failed to parse user:', e)
+      }
+    } else {
+      console.warn('getInitData: Telegram WebApp available but initData is empty')
     }
     
     return initData || null
   }
   
-  if (process.env.NODE_ENV === 'development') {
-    console.log('getInitData: Telegram WebApp not available')
-  }
+  console.warn('getInitData: Telegram WebApp not available. window.Telegram:', typeof window !== 'undefined' ? window.Telegram : 'N/A')
   
   return null
 }
