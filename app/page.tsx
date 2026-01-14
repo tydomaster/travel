@@ -1,11 +1,27 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navigation from '@/components/Navigation'
 import { useTelegram } from '@/hooks/useTelegram'
+import { getStartParam } from '@/utils/telegramLinks'
 
 export default function Home() {
-  const { user, isDevMode } = useTelegram()
+  const router = useRouter()
+  const { user, isDevMode, webApp, isReady } = useTelegram()
+
+  // Обрабатываем start_param при открытии приложения через deep link
+  useEffect(() => {
+    if (isReady && webApp) {
+      const startParam = getStartParam()
+      if (startParam) {
+        // Если есть start_param (токен приглашения), перенаправляем на страницу join
+        console.log('Start param found:', startParam)
+        router.push(`/trips/join?token=${startParam}`)
+      }
+    }
+  }, [isReady, webApp, router])
 
   return (
     <div

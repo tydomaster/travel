@@ -13,10 +13,20 @@ public interface ITelegramAuthService
 
 public class TelegramUserData
 {
+    // Telegram использует "id" (lowercase) в JSON
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
     public long Id { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("first_name")]
     public string FirstName { get; set; } = string.Empty;
+    
+    [System.Text.Json.Serialization.JsonPropertyName("last_name")]
     public string? LastName { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("username")]
     public string? Username { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("photo_url")]
     public string? PhotoUrl { get; set; }
 }
 
@@ -48,17 +58,26 @@ public class TelegramAuthService : ITelegramAuthService
             
             // Приоритет: hash (классическая проверка initData для Mini Apps через bot token)
             // Telegram присылает и signature, и hash, но hash-валидация проще и хорошо документирована.
-            if (hasHash && !string.IsNullOrEmpty(secretKey))
+            if (hasHash)
             {
-                logger?.LogInformation("Using HASH validation (bot token), hash length: {Length}, hasBotToken: {HasKey}", 
-                    hash?.Length ?? 0, true);
-                var result = ValidateInitDataHash(initData, hash!, parameters, secretKey, logger);
-                logger?.LogInformation("HASH validation result: {Result}", result);
-                return result;
+                if (!string.IsNullOrEmpty(secretKey))
+                {
+                    logger?.LogInformation("Using HASH validation (bot token), hash length: {Length}, hasBotToken: {HasKey}", 
+                        hash?.Length ?? 0, true);
+                    var result = ValidateInitDataHash(initData, hash!, parameters, secretKey, logger);
+                    logger?.LogInformation("HASH validation result: {Result}", result);
+                    return result;
+                }
+                else
+                {
+                    // Hash есть, но нет bot token - не можем валидировать
+                    logger?.LogWarning("Hash present but Bot Token is not configured. Please set Telegram__BotToken in Railway variables.");
+                    return false;
+                }
             }
 
-            // Новый метод: проверяем наличие signature (Ed25519)
-            if (hasSignature)
+            // Альтернативный метод: проверяем наличие signature (Ed25519) - только если нет hash
+            if (hasSignature && !hasHash)
             {
                 logger?.LogInformation("Using Ed25519 validation, signature length: {Length}", signature?.Length ?? 0);
                 var result = ValidateInitDataEd25519(initData, signature!, parameters, logger);
@@ -66,12 +85,7 @@ public class TelegramAuthService : ITelegramAuthService
                 return result;
             }
             
-            // Старый метод: проверяем hash (HMAC-SHA256) - для обратной совместимости
-            // (оставлено для обратной совместимости старых конфигураций)
-            if (hasHash && !string.IsNullOrEmpty(secretKey))
-                return ValidateInitDataHMAC(initData, hash!, new Dictionary<string, string>(parameters), secretKey);
-            
-            // Если нет ни signature, ни hash, или нет secretKey для hash
+            // Если нет ни signature, ни hash
             logger?.LogWarning("No valid validation method - HasSignature: {HasSignature}, HasHash: {HasHash}, HasSecretKey: {HasSecretKey}", 
                 hasSignature, hasHash, !string.IsNullOrEmpty(secretKey));
             return false;
@@ -238,12 +252,21 @@ public class TelegramAuthService : ITelegramAuthService
                 return null;
 
             var userJson = Uri.UnescapeDataString(userParam);
-            var user = System.Text.Json.JsonSerializer.Deserialize<TelegramUserData>(userJson);
+            
+            // Используем опции для правильного парсинга snake_case
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            
+            var user = System.Text.Json.JsonSerializer.Deserialize<TelegramUserData>(userJson, options);
 
             return user;
         }
-        catch
+        catch (Exception ex)
         {
+            // Логируем ошибку, но не используем ILogger здесь, так как метод может вызываться без контекста
+            System.Diagnostics.Debug.WriteLine($"[ParseInitData] Error: {ex.Message}");
             return null;
         }
     }

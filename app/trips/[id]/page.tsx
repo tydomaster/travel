@@ -65,8 +65,33 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
       
       setInviteLink(link)
 
-      // Копируем в буфер обмена
-      await navigator.clipboard.writeText(link)
+      // Копируем в буфер обмена с обработкой ошибок
+      try {
+        // Фокусируемся на документе перед копированием (требуется для Clipboard API)
+        if (document.hasFocus()) {
+          await navigator.clipboard.writeText(link)
+        } else {
+          // Если документ не в фокусе, используем альтернативный способ
+          const textArea = document.createElement('textarea')
+          textArea.value = link
+          textArea.style.position = 'fixed'
+          textArea.style.left = '-999999px'
+          document.body.appendChild(textArea)
+          textArea.focus()
+          textArea.select()
+          try {
+            document.execCommand('copy')
+          } catch (err) {
+            console.error('Failed to copy using execCommand:', err)
+          }
+          document.body.removeChild(textArea)
+        }
+      } catch (err) {
+        console.error('Failed to copy to clipboard:', err)
+        // Показываем ссылку в alert, если копирование не удалось
+        alert(`Ссылка создана:\n${link}\n\nСкопируйте её вручную.`)
+        return
+      }
 
       // Показываем уведомление через Telegram или обычный alert
       if (webApp?.HapticFeedback) {
@@ -81,12 +106,36 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
   }
 
   const copyInviteLink = async () => {
-    if (inviteLink) {
-      await navigator.clipboard.writeText(inviteLink)
+    if (!inviteLink) return
+
+    try {
+      // Фокусируемся на документе перед копированием
+      if (document.hasFocus()) {
+        await navigator.clipboard.writeText(inviteLink)
+      } else {
+        // Альтернативный способ копирования
+        const textArea = document.createElement('textarea')
+        textArea.value = inviteLink
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        try {
+          document.execCommand('copy')
+        } catch (err) {
+          console.error('Failed to copy using execCommand:', err)
+        }
+        document.body.removeChild(textArea)
+      }
+      
       if (webApp?.HapticFeedback) {
         webApp.HapticFeedback.notificationOccurred('success')
       }
       alert('Ссылка скопирована!')
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+      alert(`Ссылка:\n${inviteLink}\n\nСкопируйте её вручную.`)
     }
   }
 
