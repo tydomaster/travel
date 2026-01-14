@@ -194,3 +194,30 @@ export async function joinTrip(token: string): Promise<Trip> {
   return response.json()
 }
 
+export async function updateMemberRole(
+  tripId: number,
+  userId: number,
+  role: MembershipRole
+): Promise<void> {
+  const headers = await getAuthHeaders()
+  const response = await fetch(`${API_URL}/api/trips/${tripId}/members/role`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      userId,
+      role,
+    }),
+  })
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('Только владелец поездки может изменять роли участников')
+    }
+    if (response.status === 400) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.error || 'Не удалось изменить роль')
+    }
+    throw new Error('Не удалось изменить роль участника')
+  }
+}
+

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import TelegramHeader from '@/components/TelegramHeader'
-import { getTrip, createInvite, Trip, MembershipRole } from '@/lib/api/trips'
+import { getTrip, createInvite, updateMemberRole, Trip, MembershipRole } from '@/lib/api/trips'
 import { useTelegram } from '@/hooks/useTelegram'
 import { createTelegramMiniAppLink } from '@/utils/telegramLinks'
 
@@ -16,6 +16,7 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
   const [error, setError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [creatingInvite, setCreatingInvite] = useState(false)
+  const [updatingRole, setUpdatingRole] = useState<number | null>(null)
 
   useEffect(() => {
     loadTrip()
@@ -212,6 +213,29 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
   }
 
   const canCreateInvite = trip.role === MembershipRole.Owner || trip.role === MembershipRole.Editor
+  const canChangeRoles = trip.role === MembershipRole.Owner
+
+  const handleRoleChange = async (userId: number, newRole: MembershipRole) => {
+    if (!trip) return
+
+    try {
+      setUpdatingRole(userId)
+      await updateMemberRole(trip.id, userId, newRole)
+      // Перезагружаем поездку, чтобы получить обновленные данные
+      await loadTrip()
+      if (webApp?.HapticFeedback) {
+        webApp.HapticFeedback.notificationOccurred('success')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка изменения роли'
+      setError(errorMessage)
+      if (webApp?.HapticFeedback) {
+        webApp.HapticFeedback.notificationOccurred('error')
+      }
+    } finally {
+      setUpdatingRole(null)
+    }
+  }
 
   return (
     <div
@@ -292,12 +316,31 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
                     >
                       {member.name}
                     </p>
-                    <p
-                      className="text-xs"
-                      style={{ color: 'var(--tg-theme-hint-color, #999999)' }}
-                    >
-                      {getRoleName(member.role)}
-                    </p>
+                    {canChangeRoles && member.role !== MembershipRole.Owner ? (
+                      <select
+                        value={member.role}
+                        onChange={(e) =>
+                          handleRoleChange(member.userId, Number(e.target.value) as MembershipRole)
+                        }
+                        disabled={updatingRole === member.userId}
+                        className="text-xs rounded px-2 py-1 mt-1"
+                        style={{
+                          backgroundColor: 'var(--tg-theme-secondary-bg-color, #f1f1f1)',
+                          color: 'var(--tg-theme-text-color, #000000)',
+                          border: '1px solid var(--tg-theme-hint-color, #999999)',
+                        }}
+                      >
+                        <option value={MembershipRole.Editor}>Редактор</option>
+                        <option value={MembershipRole.Viewer}>Наблюдатель</option>
+                      </select>
+                    ) : (
+                      <p
+                        className="text-xs"
+                        style={{ color: 'var(--tg-theme-hint-color, #999999)' }}
+                      >
+                        {getRoleName(member.role)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
