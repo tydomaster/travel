@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import TelegramHeader from '@/components/TelegramHeader'
 import PlacesMap from '@/components/Places/PlacesMap'
-import { getPlaces, Place } from '@/lib/api/places'
+import { getPlaces, Place, createPlace } from '@/lib/api/places'
 import { getDays, Day, createItem, deleteItem } from '@/lib/api/itinerary'
 import { getTrip, MembershipRole } from '@/lib/api/trips'
 import { useTelegram } from '@/hooks/useTelegram'
+import PlaceSelector from '@/components/Places/PlaceSelector'
+import { MockPlace } from '@/lib/mocks/places'
 
 export default function PlacesPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -19,6 +21,7 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedDayId, setSelectedDayId] = useState<number | null>(null)
+  const [showPlaceSelector, setShowPlaceSelector] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -51,6 +54,48 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
     const day = days.find((d) => d.id === selectedDayId)
     if (!day) return false
     return day.items.some((item) => item.placeId === place.id)
+  }
+
+  const handleSelectMockPlace = async (mockPlace: MockPlace) => {
+    if (!selectedDayId) {
+      alert('Выберите день из списка выше')
+      setShowPlaceSelector(false)
+      return
+    }
+
+    try {
+      // Создаем Place в базе данных
+      const place = await createPlace(tripId, {
+        name: mockPlace.name,
+        latitude: mockPlace.latitude,
+        longitude: mockPlace.longitude,
+        address: mockPlace.address,
+        description: mockPlace.description,
+      })
+
+      // Добавляем место в выбранный день
+      const day = days.find((d) => d.id === selectedDayId)
+      if (day) {
+        await createItem(tripId, selectedDayId, {
+          title: place.name,
+          placeId: place.id,
+          order: day.items.length,
+        })
+      }
+
+      // Перезагружаем данные
+      await loadData()
+      setShowPlaceSelector(false)
+
+      if (webApp?.HapticFeedback) {
+        webApp.HapticFeedback.notificationOccurred('success')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка добавления места')
+      if (webApp?.HapticFeedback) {
+        webApp.HapticFeedback.notificationOccurred('error')
+      }
+    }
   }
 
   const handleTogglePlaceInDay = async (place: Place) => {
@@ -231,6 +276,14 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
           </div>
         )}
       </main>
+
+      {/* Place Selector Modal */}
+      {showPlaceSelector && (
+        <PlaceSelector
+          onSelect={handleSelectMockPlace}
+          onClose={() => setShowPlaceSelector(false)}
+        />
+      )}
     </div>
   )
 }
