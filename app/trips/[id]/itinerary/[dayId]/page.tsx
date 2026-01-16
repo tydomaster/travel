@@ -31,10 +31,6 @@ export default function DayPage({
   const [draggedItem, setDraggedItem] = useState<Item | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
-  useEffect(() => {
-    loadDay()
-  }, [tripId, dayId])
-
   const loadDay = async () => {
     try {
       setLoading(true)
@@ -47,6 +43,11 @@ export default function DayPage({
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadDay()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId, dayId])
 
   const handleCreateItem = async (data: CreateItemData) => {
     try {

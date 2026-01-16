@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import TelegramHeader from '@/components/TelegramHeader'
 import { getTrip, createInvite, updateMemberRole, Trip, MembershipRole } from '@/lib/api/trips'
@@ -18,10 +19,6 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
   const [creatingInvite, setCreatingInvite] = useState(false)
   const [updatingRole, setUpdatingRole] = useState<number | null>(null)
 
-  useEffect(() => {
-    loadTrip()
-  }, [params.id])
-
   const loadTrip = async () => {
     try {
       setLoading(true)
@@ -34,6 +31,11 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadTrip()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id])
 
   const handleCreateInvite = async () => {
     if (!trip) return
@@ -293,10 +295,13 @@ export default function TripOverviewPage({ params }: { params: { id: string } })
               >
                 <div className="flex items-center gap-3">
                   {member.avatar ? (
-                    <img
+                    <Image
                       src={member.avatar}
                       alt={member.name}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full"
+                      unoptimized
                     />
                   ) : (
                     <div

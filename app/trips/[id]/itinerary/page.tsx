@@ -18,10 +18,6 @@ export default function ItineraryPage({ params }: { params: { id: string } }) {
   const [creating, setCreating] = useState(false)
   const [trip, setTrip] = useState<{ startDate?: string; endDate?: string } | null>(null)
 
-  useEffect(() => {
-    loadData()
-  }, [tripId])
-
   const loadData = async () => {
     try {
       setLoading(true)
@@ -38,6 +34,11 @@ export default function ItineraryPage({ params }: { params: { id: string } }) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId])
 
   const handleCreateDay = async () => {
     if (!newDayDate) return

@@ -23,10 +23,6 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
   const [selectedDayId, setSelectedDayId] = useState<number | null>(null)
   const [showPlaceSelector, setShowPlaceSelector] = useState(false)
 
-  useEffect(() => {
-    loadData()
-  }, [tripId])
-
   const loadData = async () => {
     try {
       setLoading(true)
@@ -47,6 +43,11 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId])
 
   // Проверяем, находится ли место в выбранном дне
   const isPlaceInDay = (place: Place): boolean => {
@@ -232,7 +233,7 @@ export default function PlacesPage({ params }: { params: { id: string } }) {
               Чтобы увидеть места на карте:
             </p>
             <ol className="mt-4 list-decimal list-inside text-left space-y-2 text-sm" style={{ color: 'var(--tg-theme-hint-color, #999999)' }}>
-              <li>Перейдите в раздел "Маршрут"</li>
+              <li>Перейдите в раздел &quot;Маршрут&quot;</li>
               <li>Откройте день и добавьте пункт маршрута</li>
               <li>При создании пункта укажите координаты места (lat, lng)</li>
               <li>Места появятся на карте автоматически</li>
